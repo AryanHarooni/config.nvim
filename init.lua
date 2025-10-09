@@ -714,7 +714,9 @@ require('lazy').setup({
         --
         -- But for many setups, the LSP (`ts_ls`) will work just fine
         -- ts_ls = {},
-        --
+
+        -- asm_lsp = {},
+        -- assembly language server nothing much to do with it
 
         lua_ls = {
           -- cmd = { ... },
@@ -751,6 +753,7 @@ require('lazy').setup({
         'black',
         'clang-format',
         'stylua', -- Used to format Lua code
+        'asmfmt',
       })
       require('mason-tool-installer').setup { ensure_installed = ensure_installed }
 
@@ -815,6 +818,7 @@ require('lazy').setup({
         python = { 'ruff_fix', 'ruff_format', 'black' },
         -- You can use 'stop_after_first' to run the first available formatter from the list
         -- javascript = { "prettierd", "prettier", stop_after_first = true },
+        asm = { 'asmfmt' },
       },
     },
   },
