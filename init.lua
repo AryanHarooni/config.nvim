@@ -937,6 +937,7 @@ require('lazy').setup({
       ---@diagnostic disable-next-line: missing-fields
       vim.g.everforest_enable_italic = true
       vim.g.everforest_transparent_background = 2
+      vim.g.everforest_diagnostics_virtual_text = 'colored'
       -- }
       -- Load the colorscheme here.
       -- Like many other themes, this one has different styles, and you could load
