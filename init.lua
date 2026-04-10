@@ -673,7 +673,8 @@ require('lazy').setup({
       --  - capabilities (table): Override fields in capabilities. Can be used to disable certain LSP features.
       --  - settings (table): Override the default settings passed when initializing the server.
       --        For example, to see the options for `lua_ls`, you could go to: https://luals.github.io/wiki/settings/
-      local servers = {
+      local mason_servers = {
+
         clangd = {
           cmd = {
             'clangd',
@@ -718,7 +719,24 @@ require('lazy').setup({
         -- But for many setups, the LSP (`ts_ls`) will work just fine
         -- ts_ls = {},
 
-        -- asm_lsp = {},
+        asm_lsp = {
+          cmd = { 'asm_lsp' },
+          filetypes = { 'asm', 's', 'S' },
+
+          --   settings = {
+          --     ['asm-lsp'] = {
+          --       default_config = {
+          --         assembler = 'gas', -- could also be 'gas', 'masm', etc.
+          --         instruction_set = 'x86/x86-64',
+          --       },
+          --       opts = {
+          --         diagnostics = true,
+          --         default_diagnostics = true,
+          --         compiler = 'gcc-15',
+          --       },
+          --     },
+          --   },
+        },
         -- assembly language server nothing much to do with it
 
         lua_ls = {
@@ -737,6 +755,57 @@ require('lazy').setup({
         },
       }
 
+      -- Servers not managed by Mason
+      local lsp_servers = {
+
+        -- Ocaml Language Server
+        ocamllsp = {
+          settings = {
+            codelens = { enable = true },
+            extendedHover = { enable = true }, -- richer hover info (shows type + docs)
+            duneDiagnostics = { enable = true }, -- show dune build errors inline
+            inlayHints = { enable = true },
+          },
+        },
+        -- Rust Language Server
+        rust_analyzer = {
+          settings = {
+            ['rust-analyzer'] = {
+              check = {
+                command = 'clippy',
+              },
+              inlayHints = {
+                bindingModeHints = { enable = true },
+                chainingHints = { enable = true },
+                parameterHints = { enable = true },
+                typeHints = { enable = true },
+              },
+              cargo = {
+                allFeatures = true,
+              },
+              procMacro = {
+                enable = true,
+              },
+              completion = {
+                autoimport = { enable = true },
+                postfix = { enable = true },
+              },
+              diagnostics = {
+                enable = true,
+              },
+            },
+          },
+        },
+      }
+
+      -- Servers not managed by mason (directly using lsp-config)
+      -- setup external first
+      for name, cfg in pairs(lsp_servers) do
+        cfg.capabilities = vim.tbl_deep_extend('force', {}, capabilities, cfg.capabilities or {})
+        vim.lsp.config(name, cfg)
+        vim.lsp.enable(name)
+      end
+
       -- Ensure the servers and tools above are installed
       --
       -- To check the current status of installed tools and/or manually install
@@ -750,7 +819,11 @@ require('lazy').setup({
       --
       -- You can add other tools here that you want Mason to install
       -- for you, so that they are available from within Neovim.
-      local ensure_installed = vim.tbl_keys(servers or {})
+      local ensure_installed = vim.tbl_keys(mason_servers or {})
+      -- OCaml tooling should come from opam, not Mason
+      ensure_installed = vim.tbl_filter(function(tool)
+        return tool ~= 'ocamllsp'
+      end, ensure_installed)
       vim.list_extend(ensure_installed, {
         'ruff',
         'black',
@@ -765,12 +838,15 @@ require('lazy').setup({
         automatic_installation = false,
         handlers = {
           function(server_name)
-            local server = servers[server_name] or {}
+            local server = mason_servers[server_name] or {}
             -- This handles overriding only values explicitly passed
             -- by the server configuration above. Useful when disabling
             -- certain features of an LSP (for example, turning off formatting for ts_ls)
             server.capabilities = vim.tbl_deep_extend('force', {}, capabilities, server.capabilities or {})
-            require('lspconfig')[server_name].setup(server)
+            -- register
+            vim.lsp.config(server_name, server)
+            -- enable
+            vim.lsp.enable(server_name)
           end,
         },
       }
@@ -801,7 +877,7 @@ require('lazy').setup({
         if vim.g.disable_autoformat or vim.b.disable_autoformat then
           return
         end
-        local disable_filetypes = { c = false, cpp = false }
+        local disable_filetypes = { c = false, cpp = false, asm = true }
         if disable_filetypes[vim.bo[bufnr].filetype] then
           return nil
         else
@@ -822,6 +898,7 @@ require('lazy').setup({
         -- You can use 'stop_after_first' to run the first available formatter from the list
         -- javascript = { "prettierd", "prettier", stop_after_first = true },
         asm = { 'asmfmt' },
+        ocaml = { 'ocamlformat' },
       },
     },
   },
@@ -935,9 +1012,11 @@ require('lazy').setup({
     lazy = false,
     config = function()
       ---@diagnostic disable-next-line: missing-fields
-      vim.g.everforest_enable_italic = true
+      vim.g.everforest_enable_italic = 0
       vim.g.everforest_transparent_background = 2
-      vim.g.everforest_diagnostics_virtual_text = 'colored'
+      vim.g.everforest_diagnostic_virtual_text = 'highlighted'
+      vim.g.everforest_diagnostic_text_highlight = 1
+      vim.g.everforest_diagnostic_line_highlight = 1
       -- }
       -- Load the colorscheme here.
       -- Like many other themes, this one has different styles, and you could load
@@ -992,7 +1071,23 @@ require('lazy').setup({
     main = 'nvim-treesitter.configs', -- Sets main module to use for opts
     -- [[ Configure Treesitter ]] See `:help nvim-treesitter`
     opts = {
-      ensure_installed = { 'bash', 'c', 'cpp', 'diff', 'html', 'python', 'lua', 'luadoc', 'markdown', 'markdown_inline', 'query', 'vim', 'vimdoc' },
+      ensure_installed = {
+        'bash',
+        'c',
+        'cpp',
+        'diff',
+        'html',
+        'python',
+        'lua',
+        'luadoc',
+        'markdown',
+        'markdown_inline',
+        'query',
+        'vim',
+        'vimdoc',
+        'ocaml',
+        'ocaml_interface',
+      },
       -- Autoinstall languages that are not installed
       auto_install = true,
       highlight = {
