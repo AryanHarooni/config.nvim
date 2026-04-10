@@ -899,6 +899,7 @@ require('lazy').setup({
         -- javascript = { "prettierd", "prettier", stop_after_first = true },
         asm = { 'asmfmt' },
         ocaml = { 'ocamlformat' },
+        rust = { 'rustfmt' },
       },
     },
   },
